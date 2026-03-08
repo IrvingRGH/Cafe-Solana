@@ -1,4 +1,4 @@
-console.log("Iniciando pruebas del contrato Cafe-Solana...\n");
+console.log("Ejecutando pruebas del contrato Cafe-Solana...\n");
 
 // 1. Definir el ID del café (u64 en Rust → BN en TypeScript)
 const idCafe = new anchor.BN(1);
@@ -13,14 +13,14 @@ const [cafePda] = anchor.web3.PublicKey.findProgramAddressSync(
   pg.program.programId
 );
 
-console.log("📍 PDA derivada para el café:", cafePda.toBase58());
+console.log("Direccion PDA generada para el cafe:", cafePda.toBase58());
 
 (async () => {
   // ==========================================
   // CREATE: Registrar un café
   // ==========================================
   try {
-    console.log("\n--- 1. CREANDO REGISTRO DE CAFÉ ---");
+    console.log("\n--- PASO 1: REGISTRO DE UN NUEVO CAFE ---");
     const txCreate = await pg.program.methods
       .registrarCafe(idCafe, "Café Chiapaneco Premium", "Chiapas", "Especialidad")
       .accounts({
@@ -29,34 +29,34 @@ console.log("📍 PDA derivada para el café:", cafePda.toBase58());
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .rpc();
-    console.log("✅ Transacción de creación exitosa. Hash:", txCreate);
+    console.log("Registro exitoso. Hash de la transaccion:", txCreate);
   } catch (e) {
-    console.error("❌ Error al crear:", e.message);
+    console.error("Fallo al registrar el cafe:", e.message);
   }
 
   // ==========================================
   // READ: Leer los datos del café desde la blockchain
   // ==========================================
   try {
-    console.log("\n--- 2. LEYENDO DATOS DEL CAFÉ ---");
+    console.log("\n--- PASO 2: LECTURA DE DATOS DEL CAFE ---");
     const cafeData = await pg.program.account.cafe.fetch(cafePda);
 
-    console.log("☕ Datos extraídos de la PDA:");
-    console.log("   - Productor:", cafeData.productor.toBase58());
-    console.log("   - ID del Café:", cafeData.idCafe.toString());
-    console.log("   - Marca:", cafeData.marca);
-    console.log("   - Región de origen:", cafeData.region);
-    console.log("   - Calidad:", cafeData.calidad);
-    console.log("   - Estado actual:", cafeData.estado);
+    console.log("Informacion obtenida de la cuenta PDA:");
+    console.log("   Productor:", cafeData.productor.toBase58());
+    console.log("   ID del cafe:", cafeData.idCafe.toString());
+    console.log("   Marca:", cafeData.marca);
+    console.log("   Region de origen:", cafeData.region);
+    console.log("   Calidad:", cafeData.calidad);
+    console.log("   Estado actual:", cafeData.estado);
   } catch (e) {
-    console.error("❌ Error al leer:", e.message);
+    console.error("Fallo al leer los datos:", e.message);
   }
 
   // ==========================================
   // UPDATE: Cambiar el estado del café
   // ==========================================
   try {
-    console.log("\n--- 3. ACTUALIZANDO ESTADO DEL CAFÉ ---");
+    console.log("\n--- PASO 3: ACTUALIZACION DEL ESTADO ---");
     const txUpdate = await pg.program.methods
       .actualizarEstado(idCafe, "Tostado y Exportado")
       .accounts({
@@ -64,23 +64,23 @@ console.log("📍 PDA derivada para el café:", cafePda.toBase58());
         productor: pg.wallet.publicKey,
       })
       .rpc();
-    console.log("✅ Transacción de actualización exitosa. Hash:", txUpdate);
+    console.log("Actualizacion exitosa. Hash de la transaccion:", txUpdate);
 
     // Verificar el cambio
     const cafeActualizado = await pg.program.account.cafe.fetch(cafePda);
     console.log(
-      "🔄 Nuevo estado verificado en la blockchain:",
+      "Estado verificado en la blockchain:",
       cafeActualizado.estado
     );
   } catch (e) {
-    console.error("❌ Error al actualizar:", e.message);
+    console.error("Fallo al actualizar el estado:", e.message);
   }
 
   // ==========================================
   // DELETE: Eliminar el registro del café
   // ==========================================
   try {
-    console.log("\n--- 4. ELIMINANDO REGISTRO DEL CAFÉ ---");
+    console.log("\n--- PASO 4: ELIMINACION DEL REGISTRO ---");
     const txDelete = await pg.program.methods
       .eliminarCafe(idCafe)
       .accounts({
@@ -89,15 +89,15 @@ console.log("📍 PDA derivada para el café:", cafePda.toBase58());
       })
       .rpc();
     console.log(
-      "✅ Transacción de eliminación exitosa. Hash:",
+      "Eliminacion exitosa. Hash de la transaccion:",
       txDelete
     );
     console.log(
-      "💰 La cuenta fue cerrada y los tokens SOL de 'rent' han vuelto a tu wallet."
+      "La cuenta fue cerrada y los tokens SOL de renta han sido devueltos a tu wallet."
     );
   } catch (e) {
-    console.error("❌ Error al eliminar:", e.message);
+    console.error("Fallo al eliminar el registro:", e.message);
   }
 
-  console.log("\n☕ ¡Prueba del CRUD de Cafe-Solana completada con éxito!");
+  console.log("\nPrueba del CRUD de Cafe-Solana finalizada correctamente.");
 })();
