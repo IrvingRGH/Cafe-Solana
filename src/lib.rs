@@ -1,217 +1,139 @@
 use anchor_lang::prelude::*;
-// ID del Solana Program, este espacio se llena automaticamente al haver el "build"
+
+// SolPG generará automáticamente un ID cuando construyas (build) el proyecto.
 declare_id!("");
 
-#[program] // Macro que convierte codigo de Rust a Solana. Apartir de aqui empieza tu codigo!
-pub mod biblioteca {
-    use super::*; // Importa todas los structs y enums definidos fuera del modulo
+#[program]
+pub mod cafe_solana {
+    use super::*;
 
-    //////////////////////////// Instruccion: Crear Biblioteca /////////////////////////////////////
-    /*
-    Permite la creacion de una PDA (Program Derived Adress), un tipo especial de cuenta en solana que permite prescindir 
-    del uso de llaves privadas para la firma de transacciones. 
+    // ====================== 1. CREATE: Registrar un café ======================
+    // Crea una PDA (Program Derived Address) para almacenar la información de un café.
+    // Cada café tiene su propia cuenta en la blockchain, derivada del productor y un ID único.
+    pub fn registrar_cafe(
+        ctx: Context<RegistrarCafe>,
+        id_cafe: u64,
+        marca: String,
+        region: String,
+        calidad: String,
+    ) -> Result<()> {
+        let cafe = &mut ctx.accounts.cafe;
+        cafe.productor = *ctx.accounts.productor.key;
+        cafe.id_cafe = id_cafe;
+        cafe.marca = marca;
+        cafe.region = region;
+        cafe.calidad = calidad;
+        cafe.estado = String::from("En producción"); // Estado inicial por defecto
 
-    Esta cuenta contendra el objeto (struct) de tipo Biblioteca donde podremos almacenar los Libros. 
-    La creacion de la PDA depende de 3 cosas:
-        * Wallet address 
-        * Program ID 
-        * string representativo, regularmente relacionado con el nombre del proyecto
-    
-    La explicacion de esto continua en el struct NuevaBiblioteca
-
-    Parametros de entrada:
-        * nombre -> nombre de la biblioteca -> tipo string
-     */
-    pub fn crear_biblioteca(context: Context<NuevaBiblioteca>, nombre: String) -> Result<()> {
-        // "Context" siempre suele ir como primer parametro, ya que permite acceder al objeto o cuenta con el que queremos interactuar
-        // Dentro del context va al tipo de objeto o cuenta con el que deseamos interactuar. 
-        let owner_id = context.accounts.owner.key(); // Accedemos al wallet address del caller 
-        msg!("Owner id: {}", owner_id); // Print de verificacion
-
-        let libros: Vec<Libro> = Vec::new(); // Crea un vector vacio 
-
-        // Creamos un Struct de tipo biblioteca y lo guardamos directamente 
-        context.accounts.biblioteca.set_inner(Biblioteca { 
-            owner: owner_id,
-            nombre,
-            libros,
-        });
-        Ok(()) // Representa una transaccion exitosa 
+        msg!("Café registrado exitosamente con ID: {}", id_cafe);
+        Ok(())
     }
 
-    //////////////////////////// Instruccion: Agregar Libro /////////////////////////////////////
-    /*
-    Agrega un libro al vector de libros ontenido en el struct Biblioteca. 
-    En este caso el contexto empleado es el struct NuevoLibro. Mientras que NuevaBiblioteca permite crear 
-    Instancias de una Biblioteca. NuevoLibro permite crear y modificar los valores relacionados a cualquier
-    struct de tipo Libro.
+    // ====================== 2. UPDATE: Actualizar el estado del café ======================
+    // Permite cambiar el estado del café (ej. "Tostado", "En venta", "Exportado").
+    pub fn actualizar_estado(
+        ctx: Context<ActualizarCafe>,
+        id_cafe: u64,
+        nuevo_estado: String,
+    ) -> Result<()> {
+        let cafe = &mut ctx.accounts.cafe;
+        cafe.estado = nuevo_estado;
 
-    Parametros de entrada:
-        * nombre -> nombre del libro -> string
-        * paginas -> numero de paginas del libro -> u16
-     */ 
-    pub fn agregar_libro(context: Context<NuevoLibro>, nombre: String, paginas: u16) -> Result<()> {
-        require!( // Medida de seguridad para identificar que SOLO el owner de la biblioteca sea el que hace cambios en ella
-            context.accounts.biblioteca.owner == context.accounts.owner.key(), // Condicion, true -> continua, false -> error
-            Errores::NoEresElOwner // Codigo de error, ver enum Errores
-        ); 
-
-        let libro = Libro { // Creacion de un struct tipo Libro
-            nombre,
-            paginas,
-            disponible: true,
-        };
-
-        context.accounts.biblioteca.libros.push(libro); // Agrega el Libro al vector de libros de Biblioteca
-
-        Ok(()) // Transaccion exitosa
-    }
-
-    //////////////////////////// Instruccion: Eliminar Libro /////////////////////////////////////
-    /*
-    Elimina un libro apartir de su nombre. Error si libro no existe, Error si vector vacio. 
-
-    Parametros de entrada:
-        * nombre -> Nombre del libro -> string
-     */
-    pub fn eliminar_libro(context: Context<NuevoLibro>, nombre: String) -> Result<()> {
-        require!( // Medida de seguridad
-            context.accounts.biblioteca.owner == context.accounts.owner.key(),
-            Errores::NoEresElOwner
+        msg!(
+            "El estado del café {} ha sido actualizado a: {}",
+            id_cafe,
+            cafe.estado
         );
-
-        let libros = &mut context.accounts.biblioteca.libros; // Referencia mutable al vector de libros
-
-        for i in 0..libros.len() { // Se itera mediante el indice todo el contenido del vector en busca del libro a eliminar
-            if libros[i].nombre == nombre { // Si lo encuentra prodece a borrarlo mediante el metodo remove
-                libros.remove(i);
-                msg!("Libro {} eliminado!", nombre); // Mensaje de borrado exitoso
-                return Ok(()); // Transaccion exitosa
-            }
-        }
-        Err(Errores::LibroNoExiste.into()) // Transaccion fallida, nunca encontro el libro
+        Ok(())
     }
 
-    //////////////////////////// Instruccion: Ver Libros /////////////////////////////////////
-    /*
-    Muestra en el log de la transaccion el contenido completo del vector de libros de la Biblioteca
-
-    Parametros de entrada:
-        Ninguno
-     */
-    pub fn ver_libros(context: Context<NuevoLibro>) -> Result<()> {
-        require!( // Medida de seguridad 
-            context.accounts.biblioteca.owner == context.accounts.owner.key(),
-            Errores::NoEresElOwner
-        );
-
-        // :#? requiere que NuevoLibro tenga atributo Debug. Permite la visualizacion completa del vector en el log
-        msg!("La lista de libros actualmente es: {:#?}", context.accounts.biblioteca.libros); // Print en log
-        Ok(()) // Transaccion exitosa 
+    // ====================== 3. DELETE: Eliminar el registro del café ======================
+    // Cierra la cuenta PDA y devuelve los SOL de renta al productor.
+    // La macro `close = productor` en el contexto hace todo el trabajo de cierre.
+    pub fn eliminar_cafe(
+        _ctx: Context<EliminarCafe>,
+        id_cafe: u64,
+    ) -> Result<()> {
+        msg!("El registro del café {} ha sido eliminado de la blockchain.", id_cafe);
+        Ok(())
     }
-
-    
-    //////////////////////////// Instruccion: Alternar Estado /////////////////////////////////////
-    /* 
-    Cambia el estado de disponible de false a true o de true a false.
-
-    Parametros de entrada:
-        * nombre -> Nombre del libro -> string
-     */
-    pub fn alternar_estado(context: Context<NuevoLibro>, nombre: String) -> Result<()> {
-        require!( // Medida de seguridad
-            context.accounts.biblioteca.owner == context.accounts.owner.key(),
-            Errores::NoEresElOwner
-        );
-
-        let libros = &mut context.accounts.biblioteca.libros; // Referencia mutable al vector de libros
-        for i in 0..libros.len() { // Se itera mediante el indice el vector de libros
-            let estado = libros[i].disponible;  // Se almacena el estado del vector actual
-
-            if libros[i].nombre == nombre { // Si ecuentra el nombre del libro procede a cambiar el valor del estado 
-                let nuevo_estado = !estado;
-                libros[i].disponible = nuevo_estado;
-                msg!("El libro: {} ahora tiene un valor de disponibilidad: {}", nombre, nuevo_estado); // log print de la nueva disponibilidad
-                return Ok(()); // Transaccion exitosa
-            }
-        }
-
-        Err(Errores::LibroNoExiste.into()) // Transaccion fallida, libro no existe
-    }
-
 }
 
-/*
-Codigos de error
-Todos los codigos se almacenan en un enum con la siguiente estructura:
-#[msg("MENSAJE DE ERROR")] (dentro de las comillas)
-NombreDelError, (En camel case)
-*/
+// ==========================================
+// CÓDIGOS DE ERROR
+// ==========================================
 #[error_code]
 pub enum Errores {
-    #[msg("Error, no eres el propietario de la biblioteca que deseas modificar")]
-    NoEresElOwner,
-    #[msg("Error, el libro con el que deseas interactuar no existe")]
-    LibroNoExiste,
+    #[msg("Error: no eres el productor registrado de este café")]
+    NoEresElProductor,
 }
 
-#[account] // Especifica que el strcut es una cuenta que se almacenara en la blockchain
-#[derive(InitSpace)] // Genera la constante INIT_SPACE y determina el espacio de almacenamiento necesario 
-pub struct Biblioteca { // Define la Biblioteca
-    owner: Pubkey, // Pubkey es un formato de llave publica de 32 bytes 
+// ==========================================
+// ESTRUCTURAS DE CONTEXTO (Validaciones)
+// ==========================================
 
-    #[max_len(60)] // Cantidad maxima de caracteres del string: nombre
-    nombre: String,
-
-    #[max_len(10)] // Tamaño maximo del vector libros 
-    libros: Vec<Libro>,
-}
-
-/*
-Struct interno o secundario (No es una cuenta). Se define por derive y cuenta con los siguientes atributos:
-    * AnchorSerialize -> Permite guardar el struct en la cuenta 
-    * AnchorDeserialize -> Permite leer su contenido desde la cuenta 
-    * Clone -> Para copiar su contenido o valores 
-    * InitSpace -> Calcula el tamaño necesario para ser almacenado en la blockchain
-    * PartialEq -> Para usar sus valores y compararlos con "=="
-    * Debug -> Para mostrarlo en log con ":?" o ":#?"
-*/
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace, PartialEq, Debug)]
-pub struct Libro {
-    #[max_len(60)]
-    nombre: String,
-
-    // Los siguientes datos no rquieren de max_len porque ya estan definidos (numero de 16 bits y false o true)
-    paginas: u16, 
-
-    disponible: bool,
-}
-
-
-// Creacion de los contextos para las instrucciones (funciones)
-#[derive(Accounts)] // Especifica que este struct describe las cuentas que se requieren para determinada instruccion
-pub struct NuevaBiblioteca<'info> { // contexto de la instruccion
-    #[account(mut)] 
-    pub owner: Signer<'info>, // Se define que el owner como el que pagara la transaccion, por eso es mut, para que cambie el balance de la cuenta
-
+// Contexto para registrar un nuevo café (CREATE)
+#[derive(Accounts)]
+#[instruction(id_cafe: u64)]
+pub struct RegistrarCafe<'info> {
     #[account(
-        init, // Inidica que al llamar la instruccuion se creara una cuenta
-        // puede ser remplazado por "init_if_needed" para que solo se cree una vez por caller
-        payer = owner, // Se especifica que quien paga el llamado a la instruccion, en este caso llama la instruccion 
-        space = Biblioteca::INIT_SPACE + 8, // Se calcula el espacio requerido para almacenar el Solana Program On-Chain
-        seeds = [b"biblioteca", owner.key().as_ref()], // Se especifica que la cuenta es una PDA que depende de un string y el id del owner
-        bump // Metodo para determinar el el id de la biblioteca en base a lo anterior 
+        init,                       // Crea una nueva cuenta al llamar la instrucción
+        payer = productor,          // El productor paga la transacción y la renta
+        space = 8 + 32 + 8 + 54 + 54 + 54 + 34, // discriminador + Pubkey + u64 + marca + region + calidad + estado
+        seeds = [b"cafe", productor.key().as_ref(), id_cafe.to_le_bytes().as_ref()], // Semillas para derivar la PDA
+        bump                        // Bump para encontrar la dirección válida de la PDA
     )]
-    pub biblioteca: Account<'info, Biblioteca>, // Se especifica que la cuenta creada (PDA) almacenara la biblioteca 
+    pub cafe: Account<'info, Cafe>,
 
-    pub system_program: Program<'info, System>, // Programa necesario para crear la cuenta 
+    #[account(mut)]
+    pub productor: Signer<'info>,   // Quien firma y paga la transacción
+
+    pub system_program: Program<'info, System>, // Programa del sistema necesario para crear la cuenta
 }
 
-// Contexto para la creacion y modificacion de libros 
-#[derive(Accounts)] // Especifica que este struct se requiere para todas las instrucciones relacionadas con la creacion o modificacion de Libro
-pub struct NuevoLibro<'info> {
-    pub owner: Signer<'info>, // El owner de la cuenta es quien paga la transaccion
+// Contexto para actualizar el estado de un café (UPDATE)
+#[derive(Accounts)]
+#[instruction(id_cafe: u64)]
+pub struct ActualizarCafe<'info> {
+    #[account(
+        mut,
+        seeds = [b"cafe", productor.key().as_ref(), id_cafe.to_le_bytes().as_ref()],
+        bump,
+        has_one = productor          // Seguridad: solo el productor original puede actualizar
+    )]
+    pub cafe: Account<'info, Cafe>,
 
-    #[account(mut)] 
-    pub biblioteca: Account<'info, Biblioteca>, // Se marca biblioteca como mutable porque se modificara tanto el vector como los libros que contiene
+    #[account(mut)]
+    pub productor: Signer<'info>,
+}
+
+// Contexto para eliminar un café (DELETE)
+#[derive(Accounts)]
+#[instruction(id_cafe: u64)]
+pub struct EliminarCafe<'info> {
+    #[account(
+        mut,
+        close = productor,           // Cierra la cuenta y devuelve los SOL de renta al productor
+        seeds = [b"cafe", productor.key().as_ref(), id_cafe.to_le_bytes().as_ref()],
+        bump,
+        has_one = productor          // Seguridad: solo el productor original puede eliminar
+    )]
+    pub cafe: Account<'info, Cafe>,
+
+    #[account(mut)]
+    pub productor: Signer<'info>,
+}
+
+// ==========================================
+// ESTADO: Estructura de datos del café
+// ==========================================
+
+#[account]
+pub struct Cafe {
+    pub productor: Pubkey,  // 32 bytes - Wallet del productor/dueño
+    pub id_cafe: u64,       // 8 bytes  - Identificador único del café
+    pub marca: String,      // 4 + 50 bytes - Marca del café (ej. "Café Chiapaneco Premium")
+    pub region: String,     // 4 + 50 bytes - Región de origen (ej. "Chiapas", "Oaxaca", "Veracruz")
+    pub calidad: String,    // 4 + 50 bytes - Calidad del café (ej. "Especialidad", "Premium", "Gourmet")
+    pub estado: String,     // 4 + 30 bytes - Estado actual (ej. "En producción", "Tostado", "Exportado")
 }

@@ -1,60 +1,120 @@
-# Biblioteca en Solana
+# ☕ Cafe-Solana - Registro de Cafés en la Blockchain
 
-![banner](./images/banner-biblioteca.jpg)
+CRUD completo de un Solana Program desarrollado con **Rust** y **Anchor** desde el Solana Playground.
 
-CRUD básico de un Solana Program desarrollado con Rust y Anchor desde el Solana Playground. 
+Permite registrar cafés con su marca, región de origen (Chiapas, Oaxaca, Veracruz, etc.), calidad (Especialidad, Premium, Gourmet) y rastrear su estado (En producción, Tostado, En venta, Exportado).
 
-Puedes comenzar dándole Fork a este repositorio (abajo te explicamos como 👇), **hemos preparado un entorno de codespaces listo para que no tengas que instalar nada**, solo déjate llevar por la fluidez de los ejercicios y temas desarrollados especialmente para ti. 
+---
 
-Asegúrate de clonar este repositorio a tu cuenta usando el botón **`Fork`**.
+## ⚙️ Arquitectura Técnica
 
-![fork](./images/fork.png)
+El programa implementa un patrón **CRUD completo (Create, Read, Update, Delete)** respaldado por **PDAs (Program Derived Addresses)** para el manejo seguro del estado en la blockchain.
 
-## Importando el proyecto 
+### Estructura de Datos (Estado)
 
-Ya con el repositorio en tu cuenta lo siguiente que debes hacer copiar el `enlace de tu repositorio`, lo que se puede hacer directamente desdel navegador:
+Cada café se almacena en su propia cuenta (PDA) con la siguiente estructura:
 
-![repo](./images/repo.png)
-Posteriormente, lo uniremos con el siguiente enlace en nuestro navegador de preferencia:
+- `productor` (Pubkey): Billetera del productor/dueño del café.
+- `id_cafe` (u64): Identificador numérico único del café.
+- `marca` (String): Marca del café (ej. "Café Chiapaneco Premium").
+- `region` (String): Región de origen (ej. "Chiapas", "Oaxaca", "Veracruz").
+- `calidad` (String): Calidad del café (ej. "Especialidad", "Premium", "Gourmet", "Comercial").
+- `estado` (String): Estado actual del café ("En producción", "Tostado", "En venta", "Exportado").
 
-```url
-https://beta.solpg.io/
+### Seguridad y PDAs
+
+La dirección de cada cuenta se deriva de manera determinista usando las semillas:
+
+`[b"cafe", productor.key().as_ref(), id_cafe.to_le_bytes().as_ref()]`
+
+Esto asegura que:
+
+1. Un productor puede registrar múltiples cafés sin colisión de cuentas (gracias al `id_cafe`).
+2. Se usa la macro `has_one = productor` para garantizar que **solo el productor original** pueda modificar o eliminar el registro.
+
+---
+
+## 🚀 Guía de Ejecución en Solana Playground (SolPG)
+
+### Paso 1: Importar el proyecto
+
+1. Copia el enlace de tu repositorio.
+2. Abre [Solana Playground](https://beta.solpg.io/) y pega el enlace con el formato:
+   ```
+   https://beta.solpg.io/github.com/TU_USUARIO/Cafe-Solana
+   ```
+3. Haz clic en **Import** y asigna un nombre al proyecto.
+
+### Paso 2: Configurar Wallet y Red
+
+1. En la parte inferior izquierda, haz clic en **Not Connected** para conectarte a la **Devnet**.
+2. Se creará automáticamente una wallet de prueba.
+3. Solicita tokens de prueba en la terminal:
+   ```bash
+   solana airdrop 2
+   ```
+
+### Paso 3: Construcción (Build)
+
+1. Haz clic en el botón **Build** en el menú lateral (o escribe `anchor build` en la terminal).
+2. Verifica que aparezca una marca verde indicando compilación exitosa.
+   - _SolPG actualizará automáticamente el `declare_id!` con el ID de programa generado._
+
+### Paso 4: Despliegue (Deploy)
+
+1. Haz clic en **Deploy** (o escribe `anchor deploy` en la terminal).
+2. Espera la confirmación: _Deploy successful_.
+
+### Paso 5: Pruebas (Test CRUD)
+
+Ejecuta el archivo `client/client.ts` con el comando:
+
+```bash
+run
 ```
 
-Lo que nos dará algo parecido a:
+El script ejecutará el ciclo completo:
 
-![url](./images/url.png)
+- **CREATE**: Registra un café con marca, región y calidad.
+- **READ**: Lee los datos del café desde la blockchain.
+- **UPDATE**: Cambia el estado del café a "Tostado y Exportado".
+- **DELETE**: Elimina la cuenta y recupera los SOL de renta.
 
-Al pulsar enter seremos enviados al `Solana Playground` con nuestro proyecto abierto:
+### 📋 Salida Esperada en Consola
 
-![pg](./images/pg.png)
+```
+Iniciando pruebas del contrato Cafe-Solana...
 
-Para guardarlo solo damos clic en el boton `import` y asignamos un nombre:
+📍 PDA derivada para el café: [Dirección PDA]
 
-![import](./images/import.png)
+--- 1. CREANDO REGISTRO DE CAFÉ ---
+✅ Transacción de creación exitosa. Hash: [Hash]
 
-## Preparacion del entorno
+--- 2. LEYENDO DATOS DEL CAFÉ ---
+☕ Datos extraídos de la PDA:
+   - Productor: [Tu Wallet]
+   - ID del Café: 1
+   - Marca: Café Chiapaneco Premium
+   - Región de origen: Chiapas
+   - Calidad: Especialidad
+   - Estado actual: En producción
 
-Primero conectaremos el entorno con la devnet, lo que tambien procederá a la creación de una wallet. Para eso daremos clic en donde dice **Not Conected**:
+--- 3. ACTUALIZANDO ESTADO DEL CAFÉ ---
+✅ Transacción de actualización exitosa. Hash: [Hash]
+🔄 Nuevo estado verificado en la blockchain: Tostado y Exportado
 
-![playground1](./images/playground1.png)
+--- 4. ELIMINANDO REGISTRO DEL CAFÉ ---
+✅ Transacción de eliminación exitosa. Hash: [Hash]
+💰 La cuenta fue cerrada y los tokens SOL de 'rent' han vuelto a tu wallet.
 
-Saldrá la siguiente ventana donde daremos en el botón **Continue**:
+☕ ¡Prueba del CRUD de Cafe-Solana completada con éxito!
+```
 
-![wallet](./images/wallet.png)
+---
 
-Como resultado se mostrará la siguiente información:
+## 🛠️ Tecnologías
 
-![status](./images/status.png)
-
-* En verde: el estado de la conexión y el entorno al que se encuentra conectado
-
-* En amarillo: la la dirección de la wallet conectada
-
-* En azul: la cantidad de tokens en la wallet
-
-> ℹ️ ¿Quieres ver el ejemplo de un "Hola Mundo" en Solana?. Da clic aquí: 👉 [Ver Ejemplo](https://github.com/WayLearnLatam/Solana-starter-kit/tree/1fc6349ba63375a3fe223d8d56911bc64765459b/build-deploy)
-
-> ℹ️ ¿Cuentas con una Wallet de [Phantom](https://phantom.com/) que deseas importar?, Da clic aquí para ver como hacerlo: 
-
-👉 [Como Importar una Wallet](https://github.com/WayLearnLatam/Solana-starter-kit/tree/1fc6349ba63375a3fe223d8d56911bc64765459b/import-key-a-playground)
+- **Rust** - Lógica del Smart Contract.
+- **Anchor Framework** - Simplificación del desarrollo y validación de cuentas.
+- **TypeScript & Web3.js** - Integración y pruebas (Testing).
+- **Solana Devnet** - Red de pruebas para despliegue.
