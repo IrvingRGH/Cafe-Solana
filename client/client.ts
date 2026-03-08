@@ -1,3 +1,6 @@
+// Modo automatico y pa toda la familia
+
+
 console.log("Ejecutando pruebas del contrato Cafe-Solana...\n");
 
 // 1. Definir el ID del café (u64 en Rust → BN en TypeScript)
