@@ -1,98 +1,109 @@
-# ☕ Cafe-Solana - Registro de Cafés en la Blockchain
+# ☕ Cafe-Solana
 
-CRUD completo de un Solana Program desarrollado con **Rust** y **Anchor** desde el Solana Playground.
+![banner](./images/bannerCafe.jpg)
 
-Permite registrar cafés con su marca, región de origen (Chiapas, Oaxaca, Veracruz, etc.), calidad (Especialidad, Premium, Gourmet) y rastrear su estado (En producción, Tostado, En venta, Exportado).
-
----
-
-## ⚙️ Arquitectura Técnica
-
-El programa implementa un patrón **CRUD completo (Create, Read, Update, Delete)** respaldado por **PDAs (Program Derived Addresses)** para el manejo seguro del estado en la blockchain.
-
-### Estructura de Datos (Estado)
-
-Cada café se almacena en su propia cuenta (PDA) con la siguiente estructura:
-
-- `productor` (Pubkey): Billetera del productor/dueño del café.
-- `id_cafe` (u64): Identificador numérico único del café.
-- `marca` (String): Marca del café (ej. "Café Chiapaneco Premium").
-- `region` (String): Región de origen (ej. "Chiapas", "Oaxaca", "Veracruz").
-- `calidad` (String): Calidad del café (ej. "Especialidad", "Premium", "Gourmet", "Comercial").
-- `estado` (String): Estado actual del café ("En producción", "Tostado", "En venta", "Exportado").
-
-### Seguridad y PDAs
-
-La dirección de cada cuenta se deriva de manera determinista usando las semillas:
-
-`[b"cafe", productor.key().as_ref(), id_cafe.to_le_bytes().as_ref()]`
-
-Esto asegura que:
-
-1. Un productor puede registrar múltiples cafés sin colisión de cuentas (gracias al `id_cafe`).
-2. Se usa la macro `has_one = productor` para garantizar que **solo el productor original** pueda modificar o eliminar el registro.
+> Smart Contract en Solana para el registro y trazabilidad de cafés mexicanos en la blockchain.
 
 ---
 
-## 🚀 Guía de Ejecución en Solana Playground (SolPG)
+## ¿Qué es Cafe-Solana?
 
-### Paso 1: Importar el proyecto
+![cafe](./images/cafeProductor.jpg)
 
-1. Copia el enlace de tu repositorio.
-2. Abre [Solana Playground](https://beta.solpg.io/) y pega el enlace con el formato:
-   ```
-   https://beta.solpg.io/github.com/TU_USUARIO/Cafe-Solana
-   ```
-3. Haz clic en **Import** y asigna un nombre al proyecto.
+Cafe-Solana es un programa desplegado en la **blockchain de Solana** que permite a productores de café registrar sus productos de forma inmutable. Cada café queda almacenado como una cuenta única (PDA) con información de su **marca**, **región de origen**, **calidad** y **estado** en la cadena de suministro.
 
-### Paso 2: Configurar Wallet y Red
+Desarrollado con **Rust** y el framework **Anchor** como parte del Bootcamp de certificación de la **Solana Foundation**.
 
-1. En la parte inferior izquierda, haz clic en **Not Connected** para conectarte a la **Devnet**.
-2. Se creará automáticamente una wallet de prueba.
-3. Solicita tokens de prueba en la terminal:
-   ```bash
-   solana airdrop 2
-   ```
+---
 
-### Paso 3: Construcción (Build)
+## Instrucciones del Programa
 
-1. Haz clic en el botón **Build** en el menú lateral (o escribe `anchor build` en la terminal).
-2. Verifica que aparezca una marca verde indicando compilación exitosa.
-   - _SolPG actualizará automáticamente el `declare_id!` con el ID de programa generado._
+| Instrucción        | Acción     | Descripción                                            |
+| ------------------ | ---------- | ------------------------------------------------------ |
+| `registrarCafe`    | **CREATE** | Registra un nuevo café en la blockchain                |
+| `fetch` / `all`    | **READ**   | Lee los datos de uno o todos los cafés desde el client |
+| `actualizarEstado` | **UPDATE** | Cambia el estado del café (ej. "Tostado", "Exportado") |
+| `eliminarCafe`     | **DELETE** | Elimina la cuenta y devuelve los SOL de renta          |
 
-### Paso 4: Despliegue (Deploy)
+---
 
-1. Haz clic en **Deploy** (o escribe `anchor deploy` en la terminal).
-2. Espera la confirmación: _Deploy successful_.
+## Estructura de Datos
 
-### Paso 5: Pruebas (Test CRUD)
+Cada café se almacena en su propia cuenta PDA con los siguientes campos:
 
-Ejecuta el archivo `client/client.ts` con el comando:
+```rust
+pub struct Cafe {
+    pub productor: Pubkey,  // Wallet del productor
+    pub id_cafe: u64,       // ID único del café
+    pub marca: String,      // "Café Chiapaneco Premium"
+    pub region: String,     // "Chiapas", "Oaxaca", "Veracruz"
+    pub calidad: String,    // "Especialidad", "Premium", "Gourmet"
+    pub estado: String,     // "En producción", "Tostado", "Exportado"
+}
+```
+
+La dirección de cada cuenta se deriva con las semillas:
+
+```
+["cafe", productor_wallet, id_cafe]
+```
+
+Esto garantiza que cada café tenga su propia cuenta sin colisiones y que **solo el productor original** pueda modificarla o eliminarla.
+
+---
+
+## Cómo Ejecutarlo
+
+### 1. Importar en Solana Playground
+
+Copia el enlace de tu repositorio y ábrelo en [Solana Playground](https://beta.solpg.io/):
+
+```
+https://beta.solpg.io/github.com/IrvingRGH/Cafe-Solana
+```
+
+Haz clic en **Import** y asigna un nombre.
+
+![import](./images/import.png)
+
+### 2. Conectar Wallet
+
+Haz clic en **Not Connected** (parte inferior izquierda) para conectarte a la **Devnet** y crear tu wallet de prueba.
+
+![wallet](./images/wallet.png)
+
+Pide SOL de prueba en la terminal:
+
+```bash
+solana airdrop 2
+```
+
+### 3. Build & Deploy
+
+1. Clic en **Build** — espera la marca verde de compilación exitosa
+2. Clic en **Deploy** — espera el mensaje _"Deployment successful"_
+
+### 4. Ejecutar Pruebas
+
+En la terminal de SolPG escribe:
 
 ```bash
 run
 ```
 
-El script ejecutará el ciclo completo:
-
-- **CREATE**: Registra un café con marca, región y calidad.
-- **READ**: Lee los datos del café desde la blockchain.
-- **UPDATE**: Cambia el estado del café a "Tostado y Exportado".
-- **DELETE**: Elimina la cuenta y recupera los SOL de renta.
-
-### 📋 Salida Esperada en Consola
+Esto ejecuta `client/client.ts` que realiza el ciclo CRUD completo:
 
 ```
 Iniciando pruebas del contrato Cafe-Solana...
 
-📍 PDA derivada para el café: [Dirección PDA]
+📍 PDA derivada para el café: 3fyKakf122xDLwSGoRUXCNvsVPVZs4XMV88ZJMEGE3Pr
 
 --- 1. CREANDO REGISTRO DE CAFÉ ---
-✅ Transacción de creación exitosa. Hash: [Hash]
+✅ Transacción de creación exitosa. Hash: 5tuxSV3j3EDVn...
 
 --- 2. LEYENDO DATOS DEL CAFÉ ---
 ☕ Datos extraídos de la PDA:
-   - Productor: [Tu Wallet]
+   - Productor: 32m677WjVaxJhYYrcnRA18WNjrXnYVyfpdcbQdHyoRCD
    - ID del Café: 1
    - Marca: Café Chiapaneco Premium
    - Región de origen: Chiapas
@@ -100,11 +111,11 @@ Iniciando pruebas del contrato Cafe-Solana...
    - Estado actual: En producción
 
 --- 3. ACTUALIZANDO ESTADO DEL CAFÉ ---
-✅ Transacción de actualización exitosa. Hash: [Hash]
+✅ Transacción de actualización exitosa.
 🔄 Nuevo estado verificado en la blockchain: Tostado y Exportado
 
 --- 4. ELIMINANDO REGISTRO DEL CAFÉ ---
-✅ Transacción de eliminación exitosa. Hash: [Hash]
+✅ Transacción de eliminación exitosa.
 💰 La cuenta fue cerrada y los tokens SOL de 'rent' han vuelto a tu wallet.
 
 ☕ ¡Prueba del CRUD de Cafe-Solana completada con éxito!
@@ -112,9 +123,42 @@ Iniciando pruebas del contrato Cafe-Solana...
 
 ---
 
-## 🛠️ Tecnologías
+## Estructura del Proyecto
 
-- **Rust** - Lógica del Smart Contract.
-- **Anchor Framework** - Simplificación del desarrollo y validación de cuentas.
-- **TypeScript & Web3.js** - Integración y pruebas (Testing).
-- **Solana Devnet** - Red de pruebas para despliegue.
+```
+Cafe-Solana/
+├── src/
+│   └── lib.rs          # Smart Contract (Rust + Anchor)
+├── client/
+│   └── client.ts       # Script de pruebas CRUD (TypeScript)
+├── tests/
+│   └── anchor.test.ts  # Tests unitarios
+├── images/             # Imágenes del README
+└── README.md
+```
+
+---
+
+## Seguridad
+
+- Cada PDA se deriva de `["cafe", wallet, id]` — cuentas únicas por productor y café
+- La macro `has_one = productor` impide que alguien que no sea el dueño modifique o elimine un café
+- Al eliminar un café, la cuenta se cierra con `close` y los SOL de renta regresan al productor
+
+---
+
+## Tecnologías
+
+| Herramienta           | Uso                                 |
+| --------------------- | ----------------------------------- |
+| **Rust**              | Lógica del Smart Contract           |
+| **Anchor**            | Framework para desarrollo en Solana |
+| **TypeScript**        | Client de pruebas e integración     |
+| **Solana Devnet**     | Red de pruebas para despliegue      |
+| **Solana Playground** | IDE en el navegador                 |
+
+---
+
+## Autor
+
+Desarrollado por **Irving RGH** como parte del Bootcamp de certificación Solana Developer de la Solana Foundation.
